@@ -12,7 +12,7 @@ This repository contains Koj's Request for Comments (RFC) documents.
 
 ### 2021
 
-- [New system for asset management](./rfcs/2021/asset-management.md), February 21, 2021
+- [How to create an RFC](./rfcs/2021/how-to-create-an-rfc.md), Invalid Date
 <!--/notes-->
 
 ## ℹ️ About this repository
