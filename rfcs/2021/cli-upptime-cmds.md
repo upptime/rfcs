@@ -111,7 +111,10 @@ url: excalidraw.com
 ## Implementation
 
 We need to add a new abstraction layer between upptime services and the template repo.
-// image
+
+![image](https://user-images.githubusercontent.com/52108077/127123195-a071f0f4-5ace-4814-b356-9e806a5931ad.png)
+
+
 We can use several tools to make a CLI: 
 -  OCLIF (Node.JS)
 -  React
