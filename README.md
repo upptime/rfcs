@@ -8,11 +8,13 @@ This repository contains Koj's Request for Comments (RFC) documents.
 
 ## 🌯 Summary
 
-- 1 notes in 1 years
+- 3 notes in 1 years
 
 ### 2021
 
+- [Commands for Upptime-CLI](./rfcs/2021/cli-upptime-cmds.md), Invalid Date
 - [How to create an RFC](./rfcs/2021/how-to-create-an-rfc.md), Invalid Date
+- [Upptime CLI](./rfcs/2021/upptime-cli.md), Invalid Date
 <!--/notes-->
 
 ## ℹ️ About this repository
