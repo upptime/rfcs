@@ -4,10 +4,10 @@ API endpoints should be added to the status page for others to have a more easy 
 
 ## Motivation
 
-Upptime currently provides JSON files in the GitHub repository that can be used to display a monitor's uptime using shields.io for rending the data.  
+Upptime currently provides JSON files in the GitHub repository that can be used to display a monitor's uptime using shields.io for rendering the data.  
 While this may serve for a majority of the people does it lack features and may also suffer from possible rate limits as the githubusercontent.com domain is - to my knowledge - rate limited.
 
-Adding an api endpoint to the status page could bypass this limitation while also providing a more extensible way for people to integrate the status page into their work (i.e. Discord Bot command sor alike).
+Adding an api endpoint to the status page could bypass this limitation while also providing a more extensible way for people to integrate the status page into their work (i.e. Discord Bot commands or alike).
 
 ## Structure
 
@@ -17,7 +17,7 @@ The following Rest API paths are suggested:
 
 ```http
 GET /api/status
-GET /api/status/<monitor>/status
+GET /api/status/<monitor>
 GET /api/maintenances
 GET /api/maintenances/<monitor>
 GET /api/incidents
@@ -25,115 +25,171 @@ GET /api/incidents/<monitor>
 GET /api/incident/<id>
 ```
 
-- `/api/status` would return the Status of all tracked monitors.
-- `/api/status/<monitor>` would return the Status of the provided `<monitor>` which has to be a matching slug.
-- `/api/maintenances` would return planned schedules of all tracked monitors.
-- `/api/maintenances/<monitor>` would return planned schedules of the provided `<monitor>` which has to be a matching slug.
-- `/api/incidents` would return all past and current incidents - including maintenance -  for all tracked monitors.
-- `/api/incidents/<monitor>` would return all past and current incidents - including maintenance - of the provided `<monitor>` which has to be a matching slug.
-- `/api/incident/<id>` would return the information for an incident of the provided `<id>` which has to be a matching GitHub Issue ID.
+#### `/api/status`
 
-Both `/api/status` and `/api/status/<monitor>` may accept a `period=<period>` query parameter that, when provided, returns the statistics for the provided time period, similar to how it already done in the status page right now.  
-Acceptable values should be `24h`, `7d` (Default), `30d`, `1y` and `all`.
+Returns the Status of all tracked monitors.
 
-`/api/incident` and `/api/history/<monitor>` may accept 2 query parametrs:
+Accepts a query parameter called `period` that when provided with a valid value would display the status of the monitors for the provided period.  
+Allowed values are `24h`, `7d`, `30d`, `1y` and `all`. Defaults to `7d`.
 
-- `type=<type>` to filter by specific event types. Allowed would be `maintenance`, `degraded` and `down`
-- `limit=<limit>` to set how many entries should be returned at most.
+----
+
+#### `/api/status/<monitor>`
+
+Returns the Status of the provided `<monitor>`.
+
+The provided `<monitor>` has to be a matching slug used by the status page.
+
+Accepts a query parameter called `period` that when provided with a valid value would display the status of the monitor for the provided period.  
+Allowed values are `24h`, `7d`, `30d`, `1y` and `all`. Defaults to `7d`.
+
+----
+
+#### `/api/maintenances`
+
+Returns any planned or ongoing maintenance tasks for all tracked monitors.
+
+----
+
+#### `/api/maintenances/<monitor>`
+
+Returns any planned or ongoing maintenance for the provided `<monitor>`.
+
+The provided `<monitor>` has to be a matching slug used by the status page.
+
+----
+
+#### `/api/incidents`
+
+Returns all past and ongoing incidents, including maintenance, for all tracked monitors.
+
+Accepts two query parameters:
+
+- `type` to filter by incident type. Acceptable values are `maintenance`, `degraded` and `down`. Defaults to displaying all.
+- `limit` to limit the amount of entries to be returned. Has to be a whole positive number of at least 1. Defaults to no limit.
+
+----
+
+#### `/api/incidents/<monitor>`
+
+Returns all past and ongoing incidents, including maintenance, for the provided `<monitor>`
+
+The provided `<monitor>` has to be a matching slug used by the status page.
+
+Accepts two query parameters:
+
+- `type` to filter by incident type. Acceptable values are `maintenance`, `degraded` and `down`. Defaults to displaying all.
+- `limit` to limit the amount of entries to be returned. Has to be a whole positive number of at least 1. Defaults to no limit.
+
+----
+
+#### `/api/incident/<id>`
+
+Returns information about one specific incident of the provided `<id>`.
+
+The provided `<id>` has to match an existing GitHub Issue on the Status page's GitHub Repository.
 
 ### Responses
 
-For `/api/status/<monitor>` should the following JSON body be returned:
+Each request should return a `application/json` response.
 
-```json
-{
-  "id": "slug",
-  "name": "Slug",
-  "status": "up",
-  "uptime_percentage": 100.0,
-  "average_response_time": 50,
-  "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/slug/response-time-week.png"
-}
-```
-
-- `id` returns the slug of the monitor.
-- `name` returns the name of the monitor as defined in the upptime configuration.
-- `status` returns the current status of the monitor. Values can be `up`, `down` or `degraded`
-- `uptime_percentage` returns the overall percentage of the past uptime (Based on the provided period).
-- `average_response_time` returns the average time in milliseconds the monitored site took to response (Based on the provided period).
-- `graph` returns a URL pointing to the Graph used for the provided period.
-
-Using `/api/status` would return a JSON Array containing the above JSON body with values for each tracked monitor.
-
-An empty JSON Object would be returned for `/api/status/<monitor>` when an invalid `<monitor>` has been provided.
-
----
-
-For `/api/maintenances/<monitor>` should the following JSON body be returned:
-
-```json
-{
-  "id": "slug",
-  "name": "Slug",
-  "title": "Planned maintenance",
-  "status": "planned",
-  "start_time": "2023-04-2023T01:00:00+02:00",
-  "end_time": "2023-04-2023T06:00:00+02:00",
-  "expect_down": false,
-  "expect_degraded": true,
-  "issue": "https://github.com/Example/Staus/issue/1",
-  "messages": [
-    {
-      "author": "Example",
-      "date": "2023-04-2023T01:00:00+02:00",
-      "content": "The service will undergo maintenance to fix and update things."
-    }
-  ]
-}
-```
-
-- `id` returns the slug of the monitor.
-- `name` returns the name of the monitor as defined in the upptime configuration.
-- `title` returns the title used for the maintenance.
-- `status` returns the current status of the maintenance. Possible returns are:
-  - `pending` The maintenance has not yet started.
-  - `active` The maintenance is currently ongoing.
-  - `completed` The maintenance has been completed.
-- `start_time` returns the ISO timestamp defined in the issue on when the maintenance will start.
-- `end_time` returns the ISO timestamp defined in the issue on when the maintenance will end.
-- `expect_down` returns a boolean on if downtime should be expected.
-- `expect_degraded` returns a boolean on if degraded performance should be expected.
-- `issue` returns the URL to the issue about this maintenance.
-- `messages` returns an Array with all the messages that have been posted in the issue so far. Each entry would be a JSON object with the following content:
-  - `author` containing the GitHub Username of who posted the message.
-  - `date` containing an ISO formatted date of when the message was posted.
-  - `content` containing the message itself.
-
-Using `/api/maintenances` would return a JSON Array containing the above JSON body with values for each tracked monitor which has planned or ongoing maintenance.
-
-An empty JSON Object would be returned for `/api/maintenance/<monitor>` and an empty JSON Array for `/api/maintenances` if no maintenances are planned or ongoing.
-
----
-
-For `/api/incidents` should the following JSON body be returned:
+#### `/api/status`
 
 ```json
 [
   {
-    "id": "slug",
-    "name": "Slug",
-    "type": "maintenance",
+    "id": "monitor-1",
+    "name": "Monitor 1",
+    "url": "https://monitor1.example.com",
+    "status": "up",
+    "uptime_percentage": 100.0,
+    "average_response_time": 50,
+    "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-1/response-time-week.png"
+  },
+  {
+    "id": "monitor-2",
+    "name": "Monitor 2",
+    "url": "https://monitor2.example.com",
+    "status": "down",
+    "uptime_percentage": 71.3,
+    "average_response_time": -1,
+    "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-2/response-time-week.png"
+  }
+]
+```
+
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `status`: The status of this monitor. Can be `up`, `degraded` or `down`.
+- `uptime_percentage`: The overall Uptime of this monitor as a percentage.
+- `average_response_time`: The time in milliseconds it took for the tracked URL to respond. Returns `-1` if the site is currently down.
+- `graph`: Direct image URL to the graph displayed in the Status page overview.
+
+----
+
+#### `/api/status/<monitor>`
+
+```json
+{
+  "id": "monitor-1",
+  "name": "Monitor 1",
+  "url": "https://monitor1.example.com",
+  "status": "up",
+  "uptime_percentage": 100.0,
+  "average_response_time": 50,
+  "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-1/response-time-week.png"
+}
+```
+
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `status`: The status of this monitor. Can be `up`, `degraded` or `down`.
+- `uptime_percentage`: The overall Uptime of this monitor as a percentage.
+- `average_response_time`: The time in milliseconds it took for the tracked URL to respond. Returns `-1` if the site is currently down.
+- `graph`: Direct image URL to the graph displayed in the Status page overview.
+
+----
+
+#### `/api/maintenances`
+
+```json
+[
+  {
+    "id": "monitor-1",
+    "name": "Monitor 1",
+    "url": "https://monitor1.example.com",
     "title": "Planned maintenance",
-    "status": "planned",
-    "start_time": "2023-04-2023T01:00:00+02:00",
-    "end_time": "2023-04-2023T06:00:00+02:00",
+    "status": "scheduled",
+    "start_time": "2023-04-30T01:00:00+02:00",
+    "end_time": "2023-04-30T06:00:00+02:00",
     "expect_down": false,
     "expect_degraded": true,
     "issue": "https://github.com/Example/Staus/issue/1",
     "messages": [
       {
         "author": "Example",
-        "date": "2023-04-2023T01:00:00+02:00",
+        "date": "2023-04-30T01:00:00+02:00",
+        "content": "The service will undergo maintenance to fix and update things."
+      }
+    ]
+  },
+  {
+    "id": "monitor-2",
+    "name": "Monitor 2",
+    "url": "https://monitor2.example.com",
+    "title": "Planned maintenance",
+    "status": "scheduled",
+    "start_time": "2023-04-30T01:00:00+02:00",
+    "end_time": "2023-04-30T06:00:00+02:00",
+    "expect_down": false,
+    "expect_degraded": true,
+    "issue": "https://github.com/Example/Staus/issue/1",
+    "messages": [
+      {
+        "author": "Example",
+        "date": "2023-04-30T01:00:00+02:00",
         "content": "The service will undergo maintenance to fix and update things."
       }
     ]
@@ -141,50 +197,282 @@ For `/api/incidents` should the following JSON body be returned:
 ]
 ```
 
-Both maintenance and downtime/degraded performance share these values:
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `title`: The title of the maintenance.
+- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
+- `start_time`: ISO Formatted date and time of when the maintenance will start.
+- `end_time`: ISO formatted date and time of when the maintenance will end.
+- `expect_down`: Whether downtime is to be expected for the monitor.
+- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+- `issue`: URL pointing to the related GitHub issue for this maintenance.
+- `messages`: Array containing JSON objects for send messages in the tracked issue.
+  - `author`: The GitHub Username of the writer of this message.
+  - `date`: ISO formatted date and time of when this message has been send.
+  - `content`: The actual message that has been send.
 
-- `id` returns the slug of the monitor.
-- `name` returns the name of the monitor as defined in the upptime configuration.
-- `type` returns the type of incident. Can be `maintenance`, `down` or `degraded`.
-- `title` returns the title used for the incident.
-- `issue` returns the URL to the issue about this incident.
-- `start_time` returns the ISO timestamp defined in the issue on when the incident started.
-- `end_time` returns the ISO timestamp defined in the issue on when the incident endet. Returns `null` if it is ongoing.
-- `messages` returns an Array with all the messages that have been posted in the issue so far. Each entry would be a JSON object with the following content:
-  - `author` containing the GitHub Username of who posted the message.
-  - `date` containing an ISO formatted date of when the message was posted.
-  - `content` containing the message itself.
+----
 
-For maintenance, the following extra fields will be available:
-
-- `status` returns the current status of the maintenance. Possible returns are:
-  - `pending` The maintenance has not yet started.
-  - `active` The maintenance is currently ongoing.
-  - `completed` The maintenance has been completed.
-- `expect_down` returns a boolean on if downtime should be expected.
-- `expect_degraded` returns a boolean on if degraded performance should be expected.
-
-For `/incidents/<monitor>` would the returned array only contain incidents linked to the provided `<monitor>` slug.
-
-No incidents would return an empty JSON array.
-
----
-
-For `/api/incident/<id>` would a JSON body the same as for `/api/incidents` be returned containing information for the provided `<id>`.
-
-No matching incident would return an empty JSON object.
-
-## Failed requests
-
-A failed request (i.e. by accessing an invalid path) should result in a `application/json` body being returned with the following content.
+#### `/api/maintenances/<monitor>`
 
 ```json
 {
-  "message": "Invalid Monitor 'monitor'"
+  "id": "monitor-1",
+  "name": "Monitor 1",
+  "url": "https://monitor1.example.com",
+  "title": "Planned maintenance",
+  "status": "scheduled",
+  "start_time": "2023-04-30T01:00:00+02:00",
+  "end_time": "2023-04-30T06:00:00+02:00",
+  "expect_down": false,
+  "expect_degraded": true,
+  "issue": "https://github.com/Example/Staus/issue/1",
+  "messages": [
+    {
+      "author": "Example",
+      "date": "2023-04-30T01:00:00+02:00",
+      "content": "The service will undergo maintenance to fix and update things."
+    }
+  ]
 }
 ```
 
-- `message` returns a string containing the reason for the failed request
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `title`: The title of the maintenance.
+- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
+- `start_time`: ISO Formatted date and time of when the maintenance will start.
+- `end_time`: ISO formatted date and time of when the maintenance will end.
+- `expect_down`: Whether downtime is to be expected for the monitor.
+- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+- `issue`: URL pointing to the related GitHub issue for this maintenance.
+- `messages`: Array containing JSON objects for send messages in the tracked issue.
+  - `author`: The GitHub Username of the writer of this message.
+  - `date`: ISO formatted date and time of when this message has been send.
+  - `content`: The actual message that has been send.
+
+---
+
+#### `/api/incidents`
+
+```json
+[
+  {
+    "id": "monitor-1",
+    "name": "Monitor 1",
+    "url": "https://monitor1.example.com",
+    "type": "maintenance",
+    "title": "Planned maintenance",
+    "status": "planned",
+    "start_time": "2023-04-30T01:00:00+02:00",
+    "end_time": "2023-04-30T06:00:00+02:00",
+    "expect_down": false,
+    "expect_degraded": true,
+    "issue": "https://github.com/Example/Staus/issue/1",
+    "messages": [
+      {
+        "author": "Example",
+        "date": "2023-04-30T01:00:00+02:00",
+        "content": "The service will undergo maintenance to fix and update things."
+      }
+    ]
+  },
+  {
+    "id": "monitor-1",
+    "name": "Monitor 1",
+    "url": "https://monitor1.example.com",
+    "type": "down",
+    "title": "Monitor 1 is down"
+    "start_time": "2023-04-29T06:00:00+02:00",
+    "end_time": "2023-04-29T06:25:00+02:00",
+    "issue": "https://github.com/Example/Staus/issue/1",
+    "messages": [
+      {
+        "author": "Example",
+        "date": "2023-04-29T06:24:00+02:00",
+        "content": "A temporary fix has been implemented. A future maintenance task will fix this permanently."
+      },
+      {
+        "author": "Example",
+        "date": "2023-04-29T06:00:00+02:00",
+        "content": "Monitor 1 is experiencing an increased amount of 500 errors. We are investigating this."
+      }
+    ]
+  }
+]
+```
+
+Fields available in all incident types:
+
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `type`: The type of incident that happened. Can be `maintenance`, `degraded` or `down`.
+- `title`: The title of the incident.
+- `start_time`: ISO Formatted date and time of when the incident started.
+- `end_time`: ISO formatted date and time of when the incident ended. Returns `null` if it is still active.
+- `issue`: URL pointing to the related GitHub issue for this maintenance.
+- `messages`: Array containing JSON objects for send messages in the tracked issue.
+  - `author`: The GitHub Username of the writer of this message.
+  - `date`: ISO formatted date and time of when this message has been send.
+  - `content`: The actual message that has been send.
+
+Fields only available for maintenance entries:
+
+- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
+- `expect_down`: Whether downtime is to be expected for the monitor.
+- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+
+---
+
+#### `/api/incidents/<monitor>`
+
+```json
+[
+  {
+    "id": "monitor-1",
+    "name": "Monitor 1",
+    "url": "https://monitor1.example.com",
+    "type": "maintenance",
+    "title": "Planned maintenance",
+    "status": "planned",
+    "start_time": "2023-04-30T01:00:00+02:00",
+    "end_time": "2023-04-30T06:00:00+02:00",
+    "expect_down": false,
+    "expect_degraded": true,
+    "issue": "https://github.com/Example/Staus/issue/1",
+    "messages": [
+      {
+        "author": "Example",
+        "date": "2023-04-30T01:00:00+02:00",
+        "content": "The service will undergo maintenance to fix and update things."
+      }
+    ]
+  },
+  {
+    "id": "monitor-1",
+    "name": "Monitor 1",
+    "url": "https://monitor1.example.com",
+    "type": "down",
+    "title": "Monitor 1 is down"
+    "start_time": "2023-04-29T06:00:00+02:00",
+    "end_time": "2023-04-29T06:25:00+02:00",
+    "issue": "https://github.com/Example/Staus/issue/1",
+    "messages": [
+      {
+        "author": "Example",
+        "date": "2023-04-29T06:24:00+02:00",
+        "content": "A temporary fix has been implemented. A future maintenance task will fix this permanently."
+      },
+      {
+        "author": "Example",
+        "date": "2023-04-29T06:00:00+02:00",
+        "content": "Monitor 1 is experiencing an increased amount of 500 errors. We are investigating this."
+      }
+    ]
+  }
+]
+```
+
+Fields available in all incident types:
+
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `type`: The type of incident that happened. Can be `maintenance`, `degraded` or `down`.
+- `title`: The title of the incident.
+- `start_time`: ISO Formatted date and time of when the incident started.
+- `end_time`: ISO formatted date and time of when the incident ended. Returns `null` if it is still active.
+- `issue`: URL pointing to the related GitHub issue for this maintenance.
+- `messages`: Array containing JSON objects for send messages in the tracked issue.
+  - `author`: The GitHub Username of the writer of this message.
+  - `date`: ISO formatted date and time of when this message has been send.
+  - `content`: The actual message that has been send.
+
+Fields only available for maintenance entries:
+
+- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
+- `expect_down`: Whether downtime is to be expected for the monitor.
+- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+
+----
+
+#### `/api/incident/<id>`
+
+```json
+{
+  "id": "monitor-1",
+  "name": "Monitor 1",
+  "url": "https://monitor1.example.com",
+  "type": "down",
+  "title": "Monitor 1 is down"
+  "start_time": "2023-04-29T06:00:00+02:00",
+  "end_time": "2023-04-29T06:25:00+02:00",
+  "issue": "https://github.com/Example/Staus/issue/1",
+  "messages": [
+    {
+      "author": "Example",
+      "date": "2023-04-29T06:24:00+02:00",
+      "content": "A temporary fix has been implemented. A future maintenance task will fix this permanently."
+    },
+    {
+      "author": "Example",
+      "date": "2023-04-29T06:00:00+02:00",
+      "content": "Monitor 1 is experiencing an increased amount of 500 errors. We are investigating this."
+    }
+  ]
+}
+```
+
+Fields available in all incident types:
+
+- `id`: The slug used for the monitor.
+- `name`: The name used to display the monitor as in the status page.
+- `url`: The URL that is being tracked by the monitor.
+- `type`: The type of incident that happened. Can be `maintenance`, `degraded` or `down`.
+- `title`: The title of the incident.
+- `start_time`: ISO Formatted date and time of when the incident started.
+- `end_time`: ISO formatted date and time of when the incident ended. Returns `null` if it is still active.
+- `issue`: URL pointing to the related GitHub issue for this maintenance.
+- `messages`: Array containing JSON objects for send messages in the tracked issue.
+  - `author`: The GitHub Username of the writer of this message.
+  - `date`: ISO formatted date and time of when this message has been send.
+  - `content`: The actual message that has been send.
+
+Fields only available for maintenance entries:
+
+- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
+- `expect_down`: Whether downtime is to be expected for the monitor.
+- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+
+
+## Failed requests
+
+A failed request should return a non-200 status code with an error message explaining what went wrong. In addition should the body return a `application/json` response containing a copy of the status and response:
+
+```json
+{
+  "code": 404,
+  "message": "The provided monitor does not exist."
+}
+```
+
+The following combination of status code and message should be considered for the following cases:
+
+| Case                     | Code | Message                                                                                     |
+|--------------------------|------|---------------------------------------------------------------------------------------------|
+| Invalid Monitor slug     | 404  | The provided monitor does not exist.                                                        |
+| Invalid Incident ID      | 404  | The provided incident ID does not exist.                                                    |
+
+The following combination of status code and message should also be considered, if technically doable:
+
+| Case                     | Code | Message                                                                                     |
+|--------------------------|------|---------------------------------------------------------------------------------------------|
+| Making too many requests | 429  | Too many requests have been made. Please wait {n} seconds before doing another request.[^1] |
+
+[^1]: `{n}` would be replaced with the number of seconds the user has to wait. Response should also have Headers for the remaining time and a timestamp of the reset.
 
 ## Limitations and Difficulties
 
@@ -192,4 +480,4 @@ Adding this would require a lot of extra work for the upptime tools to work with
 
 Understanding the status page right are paths such as `example.com/incident/1` handled on the fly with no actual page in the backend, which most likely could be applied to the API paths too.
 
-The next open question is regarding whether there should be a rate-limiting of sorts in place (if doable using GitHub Pages itself) or not and other things such as caching values.
+The next open question is regarding whether there should be a rate-limiting of sorts in place (if doable using GitHub Pages itself) or not and other things such as caching values for faster and less resource-intensive responses.
