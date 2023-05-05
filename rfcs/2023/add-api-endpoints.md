@@ -140,7 +140,7 @@ Returns information of all currently tracked monitors including past incidents a
 
 ----
 
-#### `/api/monitor/<monitor>?range=<range>`
+#### `/api/monitor/<monitor>`
 
 Returns information of the provided `<monitor>` including past incidents and planned maintenance.
 
@@ -259,7 +259,7 @@ Returns information of the provided `<monitor>` including past incidents and pla
 
 ----
 
-#### `/api/incident?type=<type>&monitor=<monitor>`
+#### `/api/incident`
 
 Returns past, ongoing and scheduled incidents (Last only for maintenance type incidents), optionally filtered by type and monitor.
 
