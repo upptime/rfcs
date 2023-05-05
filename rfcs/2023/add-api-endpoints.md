@@ -16,448 +16,429 @@ Adding an api endpoint to the status page could bypass this limitation while als
 The following Rest API paths are suggested:
 
 ```http
-GET /api/status
-GET /api/status/<monitor>
-GET /api/maintenances
-GET /api/maintenances/<monitor>
-GET /api/incidents
-GET /api/incidents/<monitor>
+GET /api/monitor
+GET /api/monitor/<monitor>
+GET /api/incident
 GET /api/incident/<id>
 ```
 
-#### `/api/status`
+#### `/api/monitor`
 
-Returns the Status of all tracked monitors.
+Returns information of all currently tracked monitors including past incidents and planned maintenance.
 
-Accepts a query parameter called `period` that when provided with a valid value would display the status of the monitors for the provided period.  
-Allowed values are `24h`, `7d`, `30d`, `1y` and `all`. Defaults to `7d`.
+**Query Parameters**  
+- `range=<range>` (Optional): Sets the range of which to show data for. Acceptable values are `24h`, `7d`, `30d`, `1y` and `all`. Defaults to `7d` on no/invalid value.
 
-----
-
-#### `/api/status/<monitor>`
-
-Returns the Status of the provided `<monitor>`.
-
-The provided `<monitor>` has to be a matching slug used by the status page.
-
-Accepts a query parameter called `period` that when provided with a valid value would display the status of the monitor for the provided period.  
-Allowed values are `24h`, `7d`, `30d`, `1y` and `all`. Defaults to `7d`.
-
-----
-
-#### `/api/maintenances`
-
-Returns any planned or ongoing maintenance tasks for all tracked monitors.
-
-----
-
-#### `/api/maintenances/<monitor>`
-
-Returns any planned or ongoing maintenance for the provided `<monitor>`.
-
-The provided `<monitor>` has to be a matching slug used by the status page.
-
-----
-
-#### `/api/incidents`
-
-Returns all past and ongoing incidents, including maintenance, for all tracked monitors.
-
-Accepts two query parameters:
-
-- `type` to filter by incident type. Acceptable values are `maintenance`, `degraded` and `down`. Defaults to displaying all.
-- `limit` to limit the amount of entries to be returned. Has to be a whole positive number of at least 1. Defaults to no limit.
-
-----
-
-#### `/api/incidents/<monitor>`
-
-Returns all past and ongoing incidents, including maintenance, for the provided `<monitor>`
-
-The provided `<monitor>` has to be a matching slug used by the status page.
-
-Accepts two query parameters:
-
-- `type` to filter by incident type. Acceptable values are `maintenance`, `degraded` and `down`. Defaults to displaying all.
-- `limit` to limit the amount of entries to be returned. Has to be a whole positive number of at least 1. Defaults to no limit.
-
-----
-
-#### `/api/incident/<id>`
-
-Returns information about one specific incident of the provided `<id>`.
-
-The provided `<id>` has to match an existing GitHub Issue on the Status page's GitHub Repository.
-
-### Responses
-
-Each request should return a `application/json` response.
-
-#### `/api/status`
+**Response:**
 
 ```json
 [
   {
-    "id": "monitor-1",
-    "name": "Monitor 1",
+    "monitor": {
+      "slug": "monitor-1",
+      "title": "Monitor 1",
+      "url": "https://monitor1.example.com",
+      "status": "up",
+      "uptime": {
+        "percentage": 100.0,
+        "response_time": 50
+      },
+      "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-1/response-time-week.png"
+    },
+    "incidents": [
+      {
+        "id": 2,
+        "title": "Emergency maintenance to fix 500 errors",
+        "type": "maintenance",
+        "status": "completed"
+        "times": {
+          "start": "2023-04-30T06:00:00+02:00",
+          "end": "2023-04-30T06:25:00+02:00"
+        },
+        "url": "https://github.com/Example/Status/issue/2",
+        "messages": [
+          {
+            "author": "ExampleUser",
+            "date": "2023-04-29T06:15:00+02:00",
+            "content": "Maintenance has been completed without any issues.",
+            "link": "https://github.com/Example/Status/issue/1#issuecomment-123456713"
+          },
+          {
+            "author": "ExampleUser",
+            "date": "2023-04-29T06:01:00+02:00",
+            "content": "The emergency maintenance as mentioned in the incident [#1](https://github.com/Example/Status/issue/1) has now started.",
+            "link": "https://github.com/Example/Status/issue/1#issuecomment-123456712"
+          }
+        ],
+        "maintenances": {
+          "expect_down": true,
+          "expect_degraded": false
+        }
+      },
+      {
+        "id": 1,
+        "title": "Increased amount of 500 errors",
+        "type": "incident",
+        "status": "down",
+        "times": {
+          "start": "2023-04-29T06:00:00+02:00",
+          "end": "2023-04-29T06:25:00+02:00"
+        },
+        "url": "https://github.com/Example/Status/issue/1",
+        "messages": [
+          {
+            "author": "ExampleUser",
+            "date": "2023-04-29T06:24:00+02:00",
+            "content": "A temporary fix has been applied and we will prepare an emergency maintenance to fix this permanently.",
+            "link": "https://github.com/Example/Status/issue/1#issuecomment-123456711"
+          },
+          {
+            "author": "ExampleUser",
+            "date": "2023-04-29T06:10:00+02:00",
+            "content": "We have found the cause of the issue and will apply a temporary fix for it.",
+            "link": "https://github.com/Example/Status/issue/1#issuecomment-123456710"
+          },
+          {
+            "author": "ExampleUser",
+            "date": "2023-04-29T06:01:00+02:00",
+            "content": "We are invastigating an increased amount of 500 errors and try to find the cause.",
+            "link": "https://github.com/Example/Status/issue/1#issuecomment-123456789"
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+- `monitor`: Contains information regarding the monitor.
+  - `slug`: The slug used for this monitor.
+  - `title`: The title for this monitor displayed on the Status page and README file.
+  - `url`: The URL that is being monitored.
+  - `status`: The current status of this monitor. Can be `up`, `degraded`, `down` or `maintenance`.
+  - `uptime`: Contains data regarding the Monitor's uptime. Values depend on the selected range.
+    - `percentage`: The percentage of uptime for the monitored range.
+    - `response_time`: The response time, in milliseconds, for this monitor.
+  - `graph`: Direct URL to the graph displayed in the Status page and README for the displayed range.
+- `incidents`: Contains JSON object entries for past and current incidents and planned maintenance schedules
+  - `id`: The Issue ID related to this incident.
+  - `title`: Title displayed for this incident.
+  - `type`: The incident type. Can be `maintenance` or `incident`.
+  - `status`: The current status of this incident. Can be `scheduled`, `active` or `completed` for maintenance tasks and `degraded` or `down` for incidents.
+  - `times`: ISO formatted Dates and times of when the inciden started and ended (or will start and end).
+    - `start`: Date and time of when this incident started. May be a future date for maintenance tasks with status `scheduled`.
+    - `end`: Date and time of when this incident ended. May be a future date for maintenance tasks with status `scheduled` or `null` for ongoing incidents.
+  - `url`: Link to the related GitHub issue on the repository.
+  - `messages`: Array containing entries of posted messages in the issue, sorted from newest to oldest.
+    - `author`: Name of the GitHub User who posted the message.
+    - `date`: ISO formatted date of when the message was posted.
+    - `content`: The message content posted.
+    - `link`: Direct message link.
+  - `maintenances`: Contains information regarding planned or past maintenance tasks. Not present for incident entries.
+    - `expect_down`: Wether to expect the monitored URL to be down.
+    - `expect_degraded`: Wether to expect the monitored URL to have degraded performance.
+
+----
+
+#### `/api/monitor/<monitor>`
+
+Returns information of the provided `<monitor>` including past incidents and planned maintenance.
+
+**Path Parameters**  
+- `<monitor>`: The monitor to receive information from. Needs to be a valid slug of an existing monitor.
+
+**Query Parameters**  
+- `range=<range>` (Optional): Sets the range of which to show data for. Acceptable values are `24h`, `7d`, `30d`, `1y` and `all`. Defaults to `7d` on no/invalid value.
+
+**Response:**
+
+```json
+{
+  "monitor": {
+    "slug": "monitor-1",
+    "title": "Monitor 1",
     "url": "https://monitor1.example.com",
     "status": "up",
-    "uptime_percentage": 100.0,
-    "average_response_time": 50,
+    "uptime": {
+      "percentage": 100.0,
+      "response_time": 50
+    },
     "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-1/response-time-week.png"
   },
-  {
-    "id": "monitor-2",
-    "name": "Monitor 2",
-    "url": "https://monitor2.example.com",
-    "status": "down",
-    "uptime_percentage": 71.3,
-    "average_response_time": -1,
-    "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-2/response-time-week.png"
-  }
-]
-```
-
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `status`: The status of this monitor. Can be `up`, `degraded` or `down`.
-- `uptime_percentage`: The overall Uptime of this monitor as a percentage.
-- `average_response_time`: The time in milliseconds it took for the tracked URL to respond. Returns `-1` if the site is currently down.
-- `graph`: Direct image URL to the graph displayed in the Status page overview.
-
-----
-
-#### `/api/status/<monitor>`
-
-```json
-{
-  "id": "monitor-1",
-  "name": "Monitor 1",
-  "url": "https://monitor1.example.com",
-  "status": "up",
-  "uptime_percentage": 100.0,
-  "average_response_time": 50,
-  "graph": "https://raw.githubusercontent.com/Example/Status/master/graphs/monitor-1/response-time-week.png"
-}
-```
-
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `status`: The status of this monitor. Can be `up`, `degraded` or `down`.
-- `uptime_percentage`: The overall Uptime of this monitor as a percentage.
-- `average_response_time`: The time in milliseconds it took for the tracked URL to respond. Returns `-1` if the site is currently down.
-- `graph`: Direct image URL to the graph displayed in the Status page overview.
-
-----
-
-#### `/api/maintenances`
-
-```json
-[
-  {
-    "id": "monitor-1",
-    "name": "Monitor 1",
-    "url": "https://monitor1.example.com",
-    "title": "Planned maintenance",
-    "status": "scheduled",
-    "start_time": "2023-04-30T01:00:00+02:00",
-    "end_time": "2023-04-30T06:00:00+02:00",
-    "expect_down": false,
-    "expect_degraded": true,
-    "issue": "https://github.com/Example/Staus/issue/1",
-    "messages": [
-      {
-        "author": "Example",
-        "date": "2023-04-30T01:00:00+02:00",
-        "content": "The service will undergo maintenance to fix and update things."
-      }
-    ]
-  },
-  {
-    "id": "monitor-2",
-    "name": "Monitor 2",
-    "url": "https://monitor2.example.com",
-    "title": "Planned maintenance",
-    "status": "scheduled",
-    "start_time": "2023-04-30T01:00:00+02:00",
-    "end_time": "2023-04-30T06:00:00+02:00",
-    "expect_down": false,
-    "expect_degraded": true,
-    "issue": "https://github.com/Example/Staus/issue/1",
-    "messages": [
-      {
-        "author": "Example",
-        "date": "2023-04-30T01:00:00+02:00",
-        "content": "The service will undergo maintenance to fix and update things."
-      }
-    ]
-  }
-]
-```
-
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `title`: The title of the maintenance.
-- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
-- `start_time`: ISO Formatted date and time of when the maintenance will start.
-- `end_time`: ISO formatted date and time of when the maintenance will end.
-- `expect_down`: Whether downtime is to be expected for the monitor.
-- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
-- `issue`: URL pointing to the related GitHub issue for this maintenance.
-- `messages`: Array containing JSON objects for send messages in the tracked issue.
-  - `author`: The GitHub Username of the writer of this message.
-  - `date`: ISO formatted date and time of when this message has been send.
-  - `content`: The actual message that has been send.
-
-----
-
-#### `/api/maintenances/<monitor>`
-
-```json
-{
-  "id": "monitor-1",
-  "name": "Monitor 1",
-  "url": "https://monitor1.example.com",
-  "title": "Planned maintenance",
-  "status": "scheduled",
-  "start_time": "2023-04-30T01:00:00+02:00",
-  "end_time": "2023-04-30T06:00:00+02:00",
-  "expect_down": false,
-  "expect_degraded": true,
-  "issue": "https://github.com/Example/Staus/issue/1",
-  "messages": [
+  "incidents": [
     {
-      "author": "Example",
-      "date": "2023-04-30T01:00:00+02:00",
-      "content": "The service will undergo maintenance to fix and update things."
+      "id": 2,
+      "title": "Emergency maintenance to fix 500 errors",
+      "type": "maintenance",
+      "status": "completed"
+      "times": {
+        "start": "2023-04-30T06:00:00+02:00",
+        "end": "2023-04-30T06:25:00+02:00"
+      },
+      "url": "https://github.com/Example/Status/issue/2",
+      "messages": [
+        {
+          "author": "ExampleUser",
+          "date": "2023-04-29T06:15:00+02:00",
+          "content": "Maintenance has been completed without any issues.",
+          "link": "https://github.com/Example/Status/issue/1#issuecomment-123456713"
+        },
+        {
+          "author": "ExampleUser",
+          "date": "2023-04-29T06:01:00+02:00",
+          "content": "The emergency maintenance as mentioned in the incident [#1](https://github.com/Example/Status/issue/1) has now started.",
+          "link": "https://github.com/Example/Status/issue/1#issuecomment-123456712"
+        }
+      ],
+      "maintenances": {
+        "expect_down": true,
+        "expect_degraded": false
+      }
+    },
+    {
+      "id": 1,
+      "title": "Increased amount of 500 errors",
+      "type": "incident",
+      "status": "down",
+      "times": {
+        "start": "2023-04-29T06:00:00+02:00",
+        "end": "2023-04-29T06:25:00+02:00"
+      },
+      "url": "https://github.com/Example/Status/issue/1",
+      "messages": [
+        {
+          "author": "ExampleUser",
+          "date": "2023-04-29T06:24:00+02:00",
+          "content": "A temporary fix has been applied and we will prepare an emergency maintenance to fix this permanently.",
+          "link": "https://github.com/Example/Status/issue/1#issuecomment-123456711"
+        },
+        {
+          "author": "ExampleUser",
+          "date": "2023-04-29T06:10:00+02:00",
+          "content": "We have found the cause of the issue and will apply a temporary fix for it.",
+          "link": "https://github.com/Example/Status/issue/1#issuecomment-123456710"
+        },
+        {
+          "author": "ExampleUser",
+          "date": "2023-04-29T06:01:00+02:00",
+          "content": "We are invastigating an increased amount of 500 errors and try to find the cause.",
+          "link": "https://github.com/Example/Status/issue/1#issuecomment-123456789"
+        }
+      ]
     }
   ]
 }
 ```
 
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `title`: The title of the maintenance.
-- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
-- `start_time`: ISO Formatted date and time of when the maintenance will start.
-- `end_time`: ISO formatted date and time of when the maintenance will end.
-- `expect_down`: Whether downtime is to be expected for the monitor.
-- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
-- `issue`: URL pointing to the related GitHub issue for this maintenance.
-- `messages`: Array containing JSON objects for send messages in the tracked issue.
-  - `author`: The GitHub Username of the writer of this message.
-  - `date`: ISO formatted date and time of when this message has been send.
-  - `content`: The actual message that has been send.
-
----
-
-#### `/api/incidents`
-
-```json
-[
-  {
-    "id": "monitor-1",
-    "name": "Monitor 1",
-    "url": "https://monitor1.example.com",
-    "type": "maintenance",
-    "title": "Planned maintenance",
-    "status": "planned",
-    "start_time": "2023-04-30T01:00:00+02:00",
-    "end_time": "2023-04-30T06:00:00+02:00",
-    "expect_down": false,
-    "expect_degraded": true,
-    "issue": "https://github.com/Example/Staus/issue/1",
-    "messages": [
-      {
-        "author": "Example",
-        "date": "2023-04-30T01:00:00+02:00",
-        "content": "The service will undergo maintenance to fix and update things."
-      }
-    ]
-  },
-  {
-    "id": "monitor-1",
-    "name": "Monitor 1",
-    "url": "https://monitor1.example.com",
-    "type": "down",
-    "title": "Monitor 1 is down"
-    "start_time": "2023-04-29T06:00:00+02:00",
-    "end_time": "2023-04-29T06:25:00+02:00",
-    "issue": "https://github.com/Example/Staus/issue/1",
-    "messages": [
-      {
-        "author": "Example",
-        "date": "2023-04-29T06:24:00+02:00",
-        "content": "A temporary fix has been implemented. A future maintenance task will fix this permanently."
-      },
-      {
-        "author": "Example",
-        "date": "2023-04-29T06:00:00+02:00",
-        "content": "Monitor 1 is experiencing an increased amount of 500 errors. We are investigating this."
-      }
-    ]
-  }
-]
-```
-
-Fields available in all incident types:
-
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `type`: The type of incident that happened. Can be `maintenance`, `degraded` or `down`.
-- `title`: The title of the incident.
-- `start_time`: ISO Formatted date and time of when the incident started.
-- `end_time`: ISO formatted date and time of when the incident ended. Returns `null` if it is still active.
-- `issue`: URL pointing to the related GitHub issue for this maintenance.
-- `messages`: Array containing JSON objects for send messages in the tracked issue.
-  - `author`: The GitHub Username of the writer of this message.
-  - `date`: ISO formatted date and time of when this message has been send.
-  - `content`: The actual message that has been send.
-
-Fields only available for maintenance entries:
-
-- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
-- `expect_down`: Whether downtime is to be expected for the monitor.
-- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
-
----
-
-#### `/api/incidents/<monitor>`
-
-```json
-[
-  {
-    "id": "monitor-1",
-    "name": "Monitor 1",
-    "url": "https://monitor1.example.com",
-    "type": "maintenance",
-    "title": "Planned maintenance",
-    "status": "planned",
-    "start_time": "2023-04-30T01:00:00+02:00",
-    "end_time": "2023-04-30T06:00:00+02:00",
-    "expect_down": false,
-    "expect_degraded": true,
-    "issue": "https://github.com/Example/Staus/issue/1",
-    "messages": [
-      {
-        "author": "Example",
-        "date": "2023-04-30T01:00:00+02:00",
-        "content": "The service will undergo maintenance to fix and update things."
-      }
-    ]
-  },
-  {
-    "id": "monitor-1",
-    "name": "Monitor 1",
-    "url": "https://monitor1.example.com",
-    "type": "down",
-    "title": "Monitor 1 is down"
-    "start_time": "2023-04-29T06:00:00+02:00",
-    "end_time": "2023-04-29T06:25:00+02:00",
-    "issue": "https://github.com/Example/Staus/issue/1",
-    "messages": [
-      {
-        "author": "Example",
-        "date": "2023-04-29T06:24:00+02:00",
-        "content": "A temporary fix has been implemented. A future maintenance task will fix this permanently."
-      },
-      {
-        "author": "Example",
-        "date": "2023-04-29T06:00:00+02:00",
-        "content": "Monitor 1 is experiencing an increased amount of 500 errors. We are investigating this."
-      }
-    ]
-  }
-]
-```
-
-Fields available in all incident types:
-
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `type`: The type of incident that happened. Can be `maintenance`, `degraded` or `down`.
-- `title`: The title of the incident.
-- `start_time`: ISO Formatted date and time of when the incident started.
-- `end_time`: ISO formatted date and time of when the incident ended. Returns `null` if it is still active.
-- `issue`: URL pointing to the related GitHub issue for this maintenance.
-- `messages`: Array containing JSON objects for send messages in the tracked issue.
-  - `author`: The GitHub Username of the writer of this message.
-  - `date`: ISO formatted date and time of when this message has been send.
-  - `content`: The actual message that has been send.
-
-Fields only available for maintenance entries:
-
-- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
-- `expect_down`: Whether downtime is to be expected for the monitor.
-- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+- `monitor`: Contains information regarding the monitor.
+  - `slug`: The slug used for this monitor.
+  - `title`: The title for this monitor displayed on the Status page and README file.
+  - `url`: The URL that is being monitored.
+  - `status`: The current status of this monitor. Can be `up`, `degraded`, `down` or `maintenance`.
+  - `uptime`: Contains data regarding the Monitor's uptime. Values depend on the selected range.
+    - `percentage`: The percentage of uptime for the monitored range.
+    - `response_time`: The response time, in milliseconds, for this monitor.
+  - `graph`: Direct URL to the graph displayed in the Status page and README for the displayed range.
+- `incidents`: Contains JSON object entries for past and current incidents and planned maintenance schedules
+  - `id`: The Issue ID related to this incident.
+  - `title`: Title displayed for this incident.
+  - `type`: The incident type. Can be `maintenance` or `incident`.
+  - `status`: The current status of this incident. Can be `scheduled`, `active` or `completed` for maintenance tasks and `degraded` or `down` for incidents.
+  - `times`: ISO formatted Dates and times of when the inciden started and ended (or will start and end).
+    - `start`: Date and time of when this incident started. May be a future date for maintenance tasks with status `scheduled`.
+    - `end`: Date and time of when this incident ended. May be a future date for maintenance tasks with status `scheduled` or `null` for ongoing incidents.
+  - `url`: Link to the related GitHub issue on the repository.
+  - `messages`: Array containing entries of posted messages in the issue, sorted from newest to oldest.
+    - `author`: Name of the GitHub User who posted the message.
+    - `date`: ISO formatted date of when the message was posted.
+    - `content`: The message content posted.
+    - `link`: Direct message link.
+  - `maintenances`: Contains information regarding planned or past maintenance tasks. Not present for incident entries.
+    - `expect_down`: Wether to expect the monitored URL to be down.
+    - `expect_degraded`: Wether to expect the monitored URL to have degraded performance.
 
 ----
+
+#### `/api/incident`
+
+Returns past, ongoing and scheduled incidents (Last only for maintenance type incidents), optionally filtered by type and monitor.
+
+**Query Parameters:**  
+- `type=<type>` (Optional): The type of incident to only list. Allowed values are `maintenance` and `incident`.
+- `monitor=<monitor>` (Optional): The monitor to list incidents for.
+
+**Response:**
+
+```json
+[
+  {
+    "id": 2,
+    "title": "Emergency maintenance to fix 500 errors",
+    "type": "maintenance",
+    "status": "completed"
+    "times": {
+      "start": "2023-04-30T06:00:00+02:00",
+      "end": "2023-04-30T06:25:00+02:00"
+    },
+    "url": "https://github.com/Example/Status/issue/2",
+    "messages": [
+      {
+        "author": "ExampleUser",
+        "date": "2023-04-29T06:15:00+02:00",
+        "content": "Maintenance has been completed without any issues.",
+        "link": "https://github.com/Example/Status/issue/1#issuecomment-123456713"
+      },
+      {
+        "author": "ExampleUser",
+        "date": "2023-04-29T06:01:00+02:00",
+        "content": "The emergency maintenance as mentioned in the incident [#1](https://github.com/Example/Status/issue/1) has now started.",
+        "link": "https://github.com/Example/Status/issue/1#issuecomment-123456712"
+      }
+    ],
+    "maintenances": {
+      "expect_down": true,
+      "expect_degraded": false
+    }
+  },
+  {
+    "id": 1,
+    "title": "Increased amount of 500 errors",
+    "type": "incident",
+    "status": "down",
+    "times": {
+      "start": "2023-04-29T06:00:00+02:00",
+      "end": "2023-04-29T06:25:00+02:00"
+    },
+    "url": "https://github.com/Example/Status/issue/1",
+    "messages": [
+      {
+        "author": "ExampleUser",
+        "date": "2023-04-29T06:24:00+02:00",
+        "content": "A temporary fix has been applied and we will prepare an emergency maintenance to fix this permanently.",
+        "link": "https://github.com/Example/Status/issue/1#issuecomment-123456711"
+      },
+      {
+        "author": "ExampleUser",
+        "date": "2023-04-29T06:10:00+02:00",
+        "content": "We have found the cause of the issue and will apply a temporary fix for it.",
+        "link": "https://github.com/Example/Status/issue/1#issuecomment-123456710"
+      },
+      {
+        "author": "ExampleUser",
+        "date": "2023-04-29T06:01:00+02:00",
+        "content": "We are invastigating an increased amount of 500 errors and try to find the cause.",
+        "link": "https://github.com/Example/Status/issue/1#issuecomment-123456789"
+      }
+    ]
+  }
+]
+```
+
+- `id`: The Issue ID related to this incident.
+- `title`: Title displayed for this incident.
+- `type`: The incident type. Can be `maintenance` or `incident`.
+- `status`: The current status of this incident. Can be `scheduled`, `active` or `completed` for maintenance tasks and `degraded` or `down` for incidents.
+- `times`: ISO formatted Dates and times of when the inciden started and ended (or will start and end).
+  - `start`: Date and time of when this incident started. May be a future date for maintenance tasks with status `scheduled`.
+  - `end`: Date and time of when this incident ended. May be a future date for maintenance tasks with status `scheduled` or `null` for ongoing incidents.
+- `url`: Link to the related GitHub issue on the repository.
+- `messages`: Array containing entries of posted messages in the issue, sorted from newest to oldest.
+  - `author`: Name of the GitHub User who posted the message.
+  - `date`: ISO formatted date of when the message was posted.
+  - `content`: The message content posted.
+  - `link`: Direct message link.
+- `maintenances`: Contains information regarding planned or past maintenance tasks. Not present for incident entries.
+  - `expect_down`: Wether to expect the monitored URL to be down.
+  - `expect_degraded`: Wether to expect the monitored URL to have degraded performance.
 
 #### `/api/incident/<id>`
 
+**Path Parameters:**  
+- `<id>`: The incident ID to get the information from. Needs to be a valid (existing) issue ID.
+
+**Response:**
+
 ```json
 {
-  "id": "monitor-1",
-  "name": "Monitor 1",
-  "url": "https://monitor1.example.com",
-  "type": "down",
-  "title": "Monitor 1 is down"
-  "start_time": "2023-04-29T06:00:00+02:00",
-  "end_time": "2023-04-29T06:25:00+02:00",
-  "issue": "https://github.com/Example/Staus/issue/1",
+  "id": 1,
+  "title": "Increased amount of 500 errors",
+  "type": "incident",
+  "status": "down",
+  "times": {
+    "start": "2023-04-29T06:00:00+02:00",
+    "end": "2023-04-29T06:25:00+02:00"
+  },
+  "url": "https://github.com/Example/Status/issue/1",
   "messages": [
     {
-      "author": "Example",
+      "author": "ExampleUser",
       "date": "2023-04-29T06:24:00+02:00",
-      "content": "A temporary fix has been implemented. A future maintenance task will fix this permanently."
+      "content": "A temporary fix has been applied and we will prepare an emergency maintenance to fix this permanently.",
+      "link": "https://github.com/Example/Status/issue/1#issuecomment-123456711"
     },
     {
-      "author": "Example",
-      "date": "2023-04-29T06:00:00+02:00",
-      "content": "Monitor 1 is experiencing an increased amount of 500 errors. We are investigating this."
+      "author": "ExampleUser",
+      "date": "2023-04-29T06:10:00+02:00",
+      "content": "We have found the cause of the issue and will apply a temporary fix for it.",
+      "link": "https://github.com/Example/Status/issue/1#issuecomment-123456710"
+    },
+    {
+      "author": "ExampleUser",
+      "date": "2023-04-29T06:01:00+02:00",
+      "content": "We are invastigating an increased amount of 500 errors and try to find the cause.",
+      "link": "https://github.com/Example/Status/issue/1#issuecomment-123456789"
     }
   ]
 }
 ```
 
-Fields available in all incident types:
+- `id`: The Issue ID related to this incident.
+- `title`: Title displayed for this incident.
+- `type`: The incident type. Can be `maintenance` or `incident`.
+- `status`: The current status of this incident. Can be `scheduled`, `active` or `completed` for maintenance tasks and `degraded` or `down` for incidents.
+- `times`: ISO formatted Dates and times of when the inciden started and ended (or will start and end).
+  - `start`: Date and time of when this incident started. May be a future date for maintenance tasks with status `scheduled`.
+  - `end`: Date and time of when this incident ended. May be a future date for maintenance tasks with status `scheduled` or `null` for ongoing incidents.
+- `url`: Link to the related GitHub issue on the repository.
+- `messages`: Array containing entries of posted messages in the issue, sorted from newest to oldest.
+  - `author`: Name of the GitHub User who posted the message.
+  - `date`: ISO formatted date of when the message was posted.
+  - `content`: The message content posted.
+  - `link`: Direct message link.
+- `maintenances`: Contains information regarding planned or past maintenance tasks. Not present for incident entries.
+  - `expect_down`: Wether to expect the monitored URL to be down.
+  - `expect_degraded`: Wether to expect the monitored URL to have degraded performance.
 
-- `id`: The slug used for the monitor.
-- `name`: The name used to display the monitor as in the status page.
-- `url`: The URL that is being tracked by the monitor.
-- `type`: The type of incident that happened. Can be `maintenance`, `degraded` or `down`.
-- `title`: The title of the incident.
-- `start_time`: ISO Formatted date and time of when the incident started.
-- `end_time`: ISO formatted date and time of when the incident ended. Returns `null` if it is still active.
-- `issue`: URL pointing to the related GitHub issue for this maintenance.
-- `messages`: Array containing JSON objects for send messages in the tracked issue.
-  - `author`: The GitHub Username of the writer of this message.
-  - `date`: ISO formatted date and time of when this message has been send.
-  - `content`: The actual message that has been send.
+### Response Headers
 
-Fields only available for maintenance entries:
+The following Response Headers should be included in successful, but also failed requests, if a Rate limiting is possible:
 
-- `status`: The status of this maintenance. Can be `scheduled`, `active` or `completed`.
-- `expect_down`: Whether downtime is to be expected for the monitor.
-- `expect_degraded`: Whether degraded performance is to be expected for the monitor.
+| Name               | Value                                                     |
+|--------------------|-----------------------------------------------------------|
+| Remaining-requests | Number of requests the User can make until the next reset |
+| Reset-at           | UNIX timestamp of when the rate limit will be reset       |
 
+For a `429` response should these additional headers be included:
 
-## Failed requests
+| Name              | Value                                                             |
+|-------------------|-------------------------------------------------------------------|
+| Wait-before-retry | Time in seconds before the User should do another request         |
+| Wait-until        | UNIX timestamp of when the User can perform another request again |
 
-A failed request should return a non-200 status code with an error message explaining what went wrong. In addition should the body return a `application/json` response containing a copy of the status and response:
+### Failed and invalid Requests
+
+#### Response Body
+
+The response body is a `application/json` one which contains the status code and error message (Reason) as follows:
 
 ```json
 {
-  "code": 404,
-  "message": "The provided monitor does not exist."
+  "code": 429,
+  "message": "You've made too many requests. Please wait another 10 seconds before performing any new requests."
 }
 ```
+
+#### Response Codes and messages
 
 The following combination of status code and message should be considered for the following cases:
 
@@ -472,7 +453,7 @@ The following combination of status code and message should also be considered, 
 |--------------------------|------|---------------------------------------------------------------------------------------------|
 | Making too many requests | 429  | Too many requests have been made. Please wait {n} seconds before doing another request.[^1] |
 
-[^1]: `{n}` would be replaced with the number of seconds the user has to wait. Response should also have Headers for the remaining time and a timestamp of the reset.
+[^1]: `{n}` would be the number of seconds until a new request could be made. Additionally should `X-` headers be added.
 
 ## Limitations and Difficulties
 
