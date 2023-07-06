@@ -1,21 +1,26 @@
 name: Readme CI
+
 on:
   push:
     branches: [main]
   repository_dispatch:
     types: [readme]
   workflow_dispatch:
+
 jobs:
-  release:
-    name: Update README
-    runs-on: ubuntu-18.04
+  summarize:
+    name: Update README.md and api.json
+    runs-on: ubuntu-latest
+    # Don't run this workflow when [skip ci] is passed
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Update notes summary
+        uses: actions/checkout@v3
+        with:
+          # Fetch full history to figure out created date
+          fetch-depth: 0
+      - name: Update note summary
         uses: AnandChowdhary/notes-summary@HEAD
         with:
-          token: "${{ secrets.GH_PAT }}"
-          commitMessage: ":pencil: Update RFCs summary [skip ci]"
-          dirName: "rfcs"
+          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          directory: "rfcs"
